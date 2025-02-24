@@ -3,16 +3,36 @@ import pymongo
 import pandas as pd
 import numpy as np
 from dash import Dash, dcc, html, Input, Output
+from io import StringIO
 import datetime
 import geojson
 import geopandas as gpd
 import streamlit as st
 import ast
+import requests
 
 
-#load data
+# define parameters for a request
+token = st.secrets.token
+owner = st.secrets.owner
+repo = st.secrets.repo
+path = st.secrets.path
 
-df = pd.read_csv('data.csv')
+# send a request
+r = requests.get(
+    'https://api.github.com/repos/{owner}/{repo}/contents/{path}'.format(
+    owner=owner, repo=repo, path=path),
+    headers={
+        'accept': 'application/vnd.github.v3.raw',
+        'authorization': 'token {}'.format(token)
+            }
+    )
+
+# convert string to StringIO object
+string_io_obj = StringIO(r.text)
+
+# Load data to df
+df = pd.read_csv(string_io_obj, sep=",", index_col=0)
 # Feature Engineering
 df['distrito'] = df['distrito'].str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8').map(str.title)
 #df['tipologia'] = df['tipologia'].apply(lambda x: ','.join(map(str, x)))
